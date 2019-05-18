@@ -15,15 +15,76 @@ import {
   SearchTipsTitle,
   SearchTipsSwitch,
   SearchTipsItem
-
 } from './style'
 
 class Header extends Component {
   constructor(props) {
     super(props)
-    this.getSearchTips = this.getSearchTips.bind(this)
+    this.state = {
+      isFocused: false,
+      isMouseInTipsBoard: false,
+      showedItemCount: 10,
+      PageCount: 0,
+      showedList: []
+    }
+    this.setInputFocused = this.setInputFocused.bind(this)
+    this.blurInputFocused = this.blurInputFocused.bind(this)
+    this.mouseEnterTipsBoard = this.mouseEnterTipsBoard.bind(this)
+    this.mouseLeaveTipsBoard = this.mouseLeaveTipsBoard.bind(this)
+    this.changeShowedList = this.changeShowedList.bind(this)
   }
+
+  setInputFocused () {
+    if (this.props.searchTipsItemList.size === 0) this.props.ajaxSearchTipsItemList()
+    this.setState(state => ({
+      ...state, isFocused: true
+    }))
+  }
+
+  blurInputFocused () {
+    this.setState(state => ({
+      ...state, isFocused: false
+    }))
+  }
+
+  mouseEnterTipsBoard () {
+    this.setState(state => ({
+      ...state, isMouseInTipsBoard: true
+    }))
+  }
+
+  mouseLeaveTipsBoard () {
+    this.setState(state => ({
+      ...state, isMouseInTipsBoard: false
+    }))
+  }
+
+  changeShowedList (spinIconDOM) {
+    
+    // rotate the icon of huanyibi using DOM
+    let originAngle = spinIconDOM.style.transform.replace(/[^0-9]/ig, "")
+    if (originAngle === '') originAngle = 0
+    originAngle = parseInt(originAngle) + 360
+    spinIconDOM.style.transform = `rotate(${originAngle}deg)`
+
+    // change items in searchTipsBoard using state and props
+    const unmutRawList = this.props.searchTipsItemList
+    let { PageCount, showedItemCount } = this.state
+    const totalPage = Math.ceil(unmutRawList.size / showedItemCount)
+    let showedList = []
+    let begin = PageCount % totalPage * showedItemCount
+    let end = begin + showedItemCount
+    for (let i = begin; i < end && i < unmutRawList.size; i++) {
+      showedList.push(unmutRawList.get(i))
+    }
+    PageCount++
+    this.setState(state => ({
+      ...state, showedList, PageCount
+    }))
+  }
+
   render () {
+    const { isFocused, isMouseInTipsBoard, showedList } = this.state
     return (
       <HeaderWrapper>
         <Logo />
@@ -35,14 +96,24 @@ class Header extends Component {
             <span className="iconfont">&#xe626;</span>
           </NavItem>
           <SearchWrapper>
-            <CSSTransition timeout={200} in={this.props.isFocused} classNames='slide'>
-              <SearchInput className={this.props.isFocused ? 'focused' : ''} onFocus={this.props.setInputFocused} onBlur={this.props.blurInputFocused} />
+            <CSSTransition timeout={200} in={isFocused} classNames='slide'>
+              <SearchInput
+                className={isFocused ? 'focused' : ''}
+                onFocus={this.setInputFocused}
+                onBlur={this.blurInputFocused} />
             </CSSTransition>
-            <span className={this.props.isFocused ? 'focused iconfont' : 'iconfont'}>&#xe60b;</span>
-            {this.getSearchTips(this.props.isFocused, this.props.searchTipsItemList)}
+            <span className={isFocused ? 'focused iconfont zoom' : 'iconfont zoom'}>&#xe60b;</span>
+            <SearchTipsBoard
+              isFocused={isFocused}
+              isMouseInBoard={isMouseInTipsBoard}
+              list={showedList}
+              mouseEnter={this.mouseEnterTipsBoard}
+              mouseLeave={this.mouseLeaveTipsBoard}
+              changeList={this.changeShowedList}
+            />
           </SearchWrapper>
         </Nav>
-        <Addition>
+        <Addition onMouseEnter={this.mouseEnterTipsBoard}>
           <Button className="write">
             <span className="iconfont">&#xe60c;</span>
             写文章
@@ -52,43 +123,40 @@ class Header extends Component {
       </HeaderWrapper>
     )
   }
+}
 
-  getSearchTips (isShow, list) {
-    if (isShow) {
-      return (
-        <SearchTips>
-          <SearchTipsTitle>
-            热门搜索
-              <SearchTipsSwitch>换一批</SearchTipsSwitch>
-          </SearchTipsTitle>
-          <div>
-            {list.map(item => <SearchTipsItem key={item}>{item}</SearchTipsItem>)}
-          </div>
-        </SearchTips>
-      )
-    } else {
-      return null
-    }
+function SearchTipsBoard (props) {
+  let spinIconDOM
+  if (props.isFocused || props.isMouseInBoard) {
+    return (
+      <SearchTips onMouseEnter={props.mouseEnter} onMouseLeave={props.mouseLeave}>
+        <SearchTipsTitle>
+          热门搜索
+            <SearchTipsSwitch onClick={() => props.changeList(spinIconDOM)}>
+            <span className="iconfont spin" ref={DOM => spinIconDOM = DOM}>&#xe61e;</span>
+            换一批
+            </SearchTipsSwitch>
+        </SearchTipsTitle>
+        <div>
+          {props.list.map(item => <SearchTipsItem key={item}>{item}</SearchTipsItem>)}
+        </div>
+      </SearchTips>
+    )
+  } else {
+    return null
   }
-
 }
 
 const mapStateToProps = (state) => {
   return {
-    isFocused: state.getIn(['header', 'isFocused']),
-    searchTipsItemList: state.getIn(['header', 'searchTipsItemList'])
+    searchTipsItemList: state.getIn(['header', 'searchTipsItemList']),
   }
 }
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    setInputFocused () {
-      dispatch(actionCreators.getActionOfFocus())
-      dispatch(actionCreators.getSearchTipsItemList())
-    },
-    blurInputFocused () {
-      const action = actionCreators.getActionOfBlur()
-      dispatch(action)
+    ajaxSearchTipsItemList () {
+      dispatch(actionCreators.ajaxSearchTipsItemList())
     }
   }
 }

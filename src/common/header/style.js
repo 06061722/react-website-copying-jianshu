@@ -47,7 +47,7 @@ export const NavItem = styled.div`
 export const SearchWrapper = styled.div`
     float: left;
     position: relative;
-    .iconfont {
+    .zoom {
       font-size: 25px;
       position: absolute;
       right: 5px;
@@ -119,6 +119,15 @@ export const SearchTipsTitle = styled.div`
 export const SearchTipsSwitch = styled.span`
   float: right;
   font-size: 14px;
+  .spin {
+    display: block;
+    float: left;
+    font-size: 12px;
+    margin-right: 4px;
+    transition: all .2s ease-in;
+    transition: rotate(0deg);
+    transform-origin: center center
+  }
 `
 export const SearchTipsItem = styled.a`
   float: left;
